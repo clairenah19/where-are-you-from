@@ -69,7 +69,8 @@ body { position: fixed; inset: 0; display: flex; justify-content: center; }
   pointer-events: none;
   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
 }
-.top h1 { margin: 0; font-size: 24px; letter-spacing: -0.01em; }
+.top h1 { margin: 0; font-size: 24px; letter-spacing: -0.01em; display: inline-flex; align-items: center; gap: 10px; }
+.top .logo { width: 28px; height: 28px; border-radius: 7px; }
 .stats { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
 
 .demo-note {

@@ -1,4 +1,6 @@
-# Where Are You From 🌍📍
+# Orbit 🌍📍
+
+*Where are you from?*
 
 A mobile-first 3D globe. Visitors type **hello in their own language**, choose **which country** it's from, and a **red pin** is dropped on the globe. Pins are stored in **Supabase** and appear live for everyone.
 
