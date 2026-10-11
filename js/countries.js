@@ -210,6 +210,16 @@ export const COUNTRIES = RAW.trim().split('\n').map((line) => {
 
 export const COUNTRY_BY_CODE = new Map(COUNTRIES.map((c) => [c.code, c]));
 
+// Other names people type when searching.
+export const ALIASES = {
+  TR: 'turkey', US: 'usa america united states of america', GB: 'uk england scotland wales great britain britain',
+  CI: 'ivory coast cote divoire', CZ: 'czech republic', NL: 'holland', MM: 'burma', SZ: 'swaziland',
+  KR: 'korea republic of korea', KP: 'korea dprk', CD: 'congo democratic republic drc', CG: 'congo brazzaville',
+  AE: 'uae emirates', VA: 'holy see', CV: 'cape verde', MK: 'macedonia', PS: 'gaza west bank',
+  RU: 'russian federation', LA: 'lao', SY: 'syrian', IR: 'persia', ST: 'sao tome and principe',
+  TL: 'east timor', BN: 'brunei darussalam', FM: 'federated states of micronesia', MO: 'macao',
+};
+
 /** Country code -> flag emoji via regional indicator symbols (XK has no official flag glyph). */
 export function flag(code) {
   if (code === 'XK') return '🇽🇰';

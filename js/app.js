@@ -1,5 +1,5 @@
-import { COUNTRIES, COUNTRY_BY_CODE, flag, scatter } from './countries.js';
-import { suggest } from './greetings.js';
+import { ALIASES, COUNTRIES, COUNTRY_BY_CODE, flag, scatter } from './countries.js';
+import { normalize, suggest } from './greetings.js';
 import * as store from './store.js';
 
 const $ = (sel) => document.querySelector(sel);
@@ -54,7 +54,9 @@ function setPhase(phase) {
 // Keep the layout glued to the *visible* area so the on-screen keyboard
 // doesn't push the sheet off-screen (iOS Safari doesn't resize the layout viewport).
 function fitViewport() {
-  const h = window.visualViewport?.height ?? window.innerHeight;
+  const vv = window.visualViewport;
+  // Multiply by scale so pinch-zooming the page doesn't shrink the layout; only the keyboard should.
+  const h = vv ? vv.height * vv.scale : window.innerHeight;
   app.style.height = `${Math.round(h)}px`;
   window.scrollTo(0, 0);
 }
@@ -139,7 +141,6 @@ function addPinToGlobe(pin, { ripple = false } = {}) {
   state.pins.set(pin.id, pin);
   refreshPins();
   if (ripple) {
-    previewRing = null;
     const ring = { lat: pin.lat, lng: pin.lng };
     transientRings.push(ring);
     syncRings();
@@ -166,6 +167,9 @@ function flyTo(country) {
 
 let renderedKey = '';
 
+// Accent-insensitive search text per country ("Türkiye" is found by "turkiye" and "turkey").
+const SEARCH_TEXT = new Map(COUNTRIES.map((c) => [c.code, normalize(`${c.name} ${ALIASES[c.code] ?? ''}`)]));
+
 function countryRow(c) {
   const li = document.createElement('li');
   const btn = document.createElement('button');
@@ -190,14 +194,14 @@ function groupHeading(text) {
 }
 
 function renderList() {
-  const query = searchInput.value.trim().toLowerCase();
+  const query = normalize(searchInput.value);
   const key = `${query}|${state.suggested.join(',')}`;
   if (key === renderedKey) return;
   renderedKey = key;
 
   const frag = document.createDocumentFragment();
   if (query) {
-    const hits = COUNTRIES.filter((c) => c.name.toLowerCase().includes(query));
+    const hits = COUNTRIES.filter((c) => SEARCH_TEXT.get(c.code).includes(query));
     hits.forEach((c) => frag.append(countryRow(c)));
     if (!hits.length) {
       const li = document.createElement('li');
@@ -215,6 +219,7 @@ function renderList() {
     COUNTRIES.forEach((c) => frag.append(countryRow(c)));
   }
   listEl.replaceChildren(frag);
+  listEl.scrollTop = 0; // new results: start at the top, where "Likely matches" are
 }
 
 function updateDropButton() {
@@ -247,6 +252,43 @@ function clearSelection() {
 }
 
 // ------------------------------------------------------------------ events
+
+// Open / close the bottom panel: tap the handle, or swipe it up / down.
+const sheet = $('#sheet');
+const sheetToggle = $('#sheetToggle');
+let dragStartY = null;
+let swiped = false;
+
+function setCollapsed(collapsed) {
+  sheet.dataset.collapsed = String(collapsed);
+  sheetToggle.setAttribute('aria-expanded', String(!collapsed));
+  sheetToggle.setAttribute('aria-label', collapsed ? 'Open panel' : 'Close panel');
+  if (collapsed) document.activeElement?.blur?.(); // drop the keyboard
+}
+
+sheetToggle.addEventListener('pointerdown', (e) => {
+  dragStartY = e.clientY;
+  swiped = false;
+});
+sheetToggle.addEventListener('pointerup', (e) => {
+  if (dragStartY === null) return;
+  const dy = e.clientY - dragStartY;
+  dragStartY = null;
+  if (Math.abs(dy) > 24) {
+    swiped = true;
+    setCollapsed(dy > 0);
+  }
+});
+sheetToggle.addEventListener('pointercancel', () => {
+  dragStartY = null;
+});
+sheetToggle.addEventListener('click', () => {
+  if (swiped) {
+    swiped = false;
+    return;
+  }
+  setCollapsed(sheet.dataset.collapsed !== 'true');
+});
 
 helloInput.addEventListener('input', () => {
   state.greeting = cleanGreeting(helloInput.value);
@@ -291,8 +333,13 @@ dropBtn.addEventListener('click', async () => {
       lng: spot.lng,
     });
     state.lastDropAt = Date.now();
+    clearSelection(); // also removes the preview ring
     addPinToGlobe(saved, { ripple: true });
     globe.pointOfView({ lat: saved.lat, lng: saved.lng, altitude: 1.9 }, 900);
+    clearTimeout(resumeTimer);
+    resumeTimer = setTimeout(() => {
+      controls.autoRotate = true;
+    }, 6000);
     doneText.replaceChildren(
       document.createTextNode('You said '),
       Object.assign(document.createElement('b'), { textContent: `“${greeting}”` }),

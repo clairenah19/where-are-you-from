@@ -32,9 +32,13 @@
 
     <p id="demoNote" class="demo-note" hidden>Demo mode: pins stay in this browser. Add your Supabase keys in <code>js/config.js</code>.</p>
 
-    <section id="sheet" class="sheet" aria-label="Add your pin">
-      <div class="sheet-handle" aria-hidden="true"></div>
+    <section id="sheet" class="sheet" data-collapsed="false" aria-label="Add your pin">
+      <button id="sheetToggle" class="sheet-toggle" type="button" aria-expanded="true" aria-controls="sheetBody" aria-label="Close panel">
+        <span class="sheet-handle" aria-hidden="true"></span>
+        <span class="sheet-hint" aria-hidden="true">Tap to say hello &amp; drop a pin</span>
+      </button>
 
+      <div id="sheetBody" class="sheet-body">
       <div class="field">
         <label for="hello">Say hello the way you do back home</label>
         <input id="hello" type="text" inputmode="text" maxlength="40" autocomplete="off"
@@ -55,6 +59,7 @@
         <p class="done-title">📍 Pinned!</p>
         <p id="doneText" class="done-text"></p>
         <button id="again" class="primary" type="button">Add another hello</button>
+      </div>
       </div>
     </section>
 
