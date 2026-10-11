@@ -1,14 +1,16 @@
-# Orbit 🌍📍
+# Orbit
 
 *Where are you from?*
 
 A mobile-first 3D globe. Visitors type **hello in their own language**, choose **which country** it's from, and a **red pin** is dropped on the globe. Pins are stored in **Supabase** and appear live for everyone.
 
-- Portrait-only UI (a "turn your phone upright" screen shows in landscape)
+- Portrait-only UI (phones held sideways see a "rotate your device" notice)
 - 3D globe you can spin and pinch-zoom ([globe.gl](https://globe.gl))
-- Typing a greeting floats likely countries to the top ("Bonjour" → France, Canada, Belgium…); you can always pick any country
+- Typing a greeting floats likely countries to the top ("Bonjour" suggests France, Canada, Belgium), including non-Latin scripts such as Korean, Japanese, Arabic and Cyrillic; you can always pick any country
+- Branded loading screen, count-up stats, and subtle motion that respects the "reduce motion" setting
+- No emoji anywhere: icons are inline SVG and flags are SVG images
 - No build step, plain static files: works as-is on GitHub Pages
-- Runs in **demo mode** (pins saved in the browser only) until you add Supabase keys
+- Runs in **demo mode** (pins saved in the browser only, shown with a "Demo" badge) until you add Supabase keys
 
 ## Run locally
 
@@ -38,7 +40,7 @@ Pages-readiness notes:
 
 - `.nojekyll` makes Pages serve the files exactly as they are (no Jekyll processing).
 - `404.html` is shown for unknown URLs. `manifest.webmanifest` and `icon.svg` make it installable to a phone's home screen.
-- Third-party libraries load from CDNs at **pinned versions** (`globe.gl@2.46.2`, `three-globe@2.45.4` textures, `supabase-js@2.117.3`). To upgrade, change those in `index.html`, `js/app.js` and `js/store.js` and re-test.
+- Third-party assets load from the jsDelivr / esm.sh CDNs at **pinned versions**: `globe.gl@2.46.2`, `three-globe@2.45.4` (textures), `supabase-js@2.117.3`, `flag-icons@7.5.0` (SVG flags, MIT), and `@fontsource-variable/inter@5.3.0` (Inter, SIL OFL). To upgrade, change them in `index.html`, `js/app.js`, `js/countries.js` and `js/store.js` and re-test.
 - Pages is served over HTTPS, which Supabase and the globe need. Opening `index.html` directly from disk won't work (ES modules); use a local server.
 
 ## How it works
@@ -59,4 +61,4 @@ Pages-readiness notes:
 - **Moderation**: the greeting is free text shown to everyone. Rendering is escaped (no XSS), but add a profanity filter / review step if the site is public. Delete pins from the Supabase dashboard.
 - **Scale**: all pins are loaded at once (capped at 10,000) and drawn as individual meshes. Past a few thousand pins, aggregate by country or use globe.gl's `pointsMerge`.
 - **Offline / PWA**: there's a manifest (portrait, standalone) but no service worker yet.
-- **Orientation lock**: browsers can only truly lock orientation for installed PWAs; otherwise the landscape overlay is the fallback.
+- **Orientation lock**: browsers can only truly lock orientation for installed PWAs; otherwise the "rotate your device" notice is the fallback. It reads the device's real orientation (not the page's width and height, which change when the on-screen keyboard opens on Android) and only appears on phone-sized touch devices.

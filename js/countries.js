@@ -220,10 +220,9 @@ export const ALIASES = {
   TL: 'east timor', BN: 'brunei darussalam', FM: 'federated states of micronesia', MO: 'macao',
 };
 
-/** Country code -> flag emoji via regional indicator symbols (XK has no official flag glyph). */
-export function flag(code) {
-  if (code === 'XK') return '🇽🇰';
-  return String.fromCodePoint(...[...code].map((ch) => 0x1f1a5 + ch.charCodeAt(0)));
+/** URL of a country's flag as an SVG image (flag-icons, pinned version; covers every code above, incl. XK). */
+export function flagUrl(code) {
+  return `https://cdn.jsdelivr.net/npm/flag-icons@7.5.0/flags/4x3/${code.toLowerCase()}.svg`;
 }
 
 // How far (in degrees) a pin may be scattered from a country's centre point,

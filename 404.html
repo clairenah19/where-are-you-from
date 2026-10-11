@@ -3,24 +3,33 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#050816">
-  <title>Page not found</title>
+  <meta name="theme-color" content="#04070f">
+  <title>Page not found | Orbit</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
   <style>
-    html, body { height: 100%; margin: 0; background: #050816; color: #f2f5ff;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    main { min-height: 100%; display: grid; place-content: center; gap: 12px; padding: 24px; text-align: center; }
-    h1 { margin: 0; font-size: 28px; }
-    p { margin: 0; color: #9aa6c7; }
-    a { display: inline-block; margin-top: 8px; padding: 14px 24px; border-radius: 16px;
-      background: #ff3b4a; color: #fff; font-weight: 700; text-decoration: none; }
+    html, body { height: 100%; margin: 0; background: #04070f; color: #eef1f8;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased; }
+    main { min-height: 100%; display: grid; place-content: center; justify-items: center; gap: 8px; padding: 24px; text-align: center; }
+    img { width: 48px; height: 48px; border-radius: 12px; margin-bottom: 12px; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12); }
+    .code { margin: 0; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #8e99b6; }
+    h1 { margin: 0; font-size: 26px; font-weight: 650; letter-spacing: -0.02em; }
+    p { margin: 0; color: #8e99b6; }
+    a { display: inline-block; margin-top: 18px; padding: 14px 24px; border-radius: 14px;
+      background: #ef4352; color: #fff; font-weight: 600; text-decoration: none;
+      transition: transform .15s, background .2s; }
+    a:hover { background: #f45a67; }
+    a:active { transform: scale(.98); }
   </style>
 </head>
 <body>
   <main>
-    <h1>🌍 Lost?</h1>
-    <p>That page doesn't exist.</p>
+    <img src="icon.svg" alt="">
+    <p class="code">Error 404</p>
+    <h1>Page not found</h1>
+    <p>The page you are looking for does not exist.</p>
     <!-- Relative link so it works under https://<user>.github.io/<repo>/ -->
-    <a href="./">Back to the globe</a>
+    <a href="./">Back to Orbit</a>
   </main>
 </body>
 </html>
