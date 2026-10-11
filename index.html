@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="theme-color" content="#050816">
+  <meta name="description" content="Say hello in your language, pick your country, and drop a pin on the globe.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Where From">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Where Are You From?">
+  <meta property="og:description" content="Say hello in your language, pick your country, and drop a pin on the globe.">
+  <meta name="twitter:card" content="summary">
+  <title>Where Are You From</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="css/style.css">
+  <!-- 3D globe (three.js bundled inside). Loaded from a CDN so there is no build step. -->
+  <script src="https://cdn.jsdelivr.net/npm/globe.gl@2.46.2/dist/globe.gl.min.js"></script>
+</head>
+<body>
+  <div id="app" data-phase="idle">
+    <div id="globe" aria-label="3D globe showing where people are from"></div>
+    <div id="loading" class="loading">Loading globe…</div>
+
+    <header class="top">
+      <h1>Where are you from?</h1>
+      <p id="stats" class="stats" aria-live="polite">&nbsp;</p>
+    </header>
+
+    <p id="demoNote" class="demo-note" hidden>Demo mode: pins stay in this browser. Add your Supabase keys in <code>js/config.js</code>.</p>
+
+    <section id="sheet" class="sheet" aria-label="Add your pin">
+      <div class="sheet-handle" aria-hidden="true"></div>
+
+      <div class="field">
+        <label for="hello">Say hello the way you do back home</label>
+        <input id="hello" type="text" inputmode="text" maxlength="40" autocomplete="off"
+               autocapitalize="sentences" spellcheck="false" placeholder="Bonjour, Hola, こんにちは…">
+      </div>
+
+      <div id="pick" class="pick">
+        <div class="pick-head">
+          <h2>Which country is that from?</h2>
+          <input id="search" type="search" maxlength="40" autocomplete="off" spellcheck="false"
+                 placeholder="Search countries" aria-label="Search countries">
+        </div>
+        <ul id="countries" class="countries"></ul>
+        <button id="drop" class="primary" type="button" disabled>Pick a country</button>
+      </div>
+
+      <div id="done" class="done">
+        <p class="done-title">📍 Pinned!</p>
+        <p id="doneText" class="done-text"></p>
+        <button id="again" class="primary" type="button">Add another hello</button>
+      </div>
+    </section>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </div>
+
+  <div id="rotate" class="rotate" role="alert">
+    <span aria-hidden="true">📱</span>
+    <p>Please turn your phone upright.<br>This map works in portrait mode.</p>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

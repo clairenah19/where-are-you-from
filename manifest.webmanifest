@@ -1,0 +1,14 @@
+{
+  "name": "Where Are You From",
+  "short_name": "Where From",
+  "description": "Say hello in your language, pick your country, and drop a pin on the globe.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#050816",
+  "theme_color": "#050816",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

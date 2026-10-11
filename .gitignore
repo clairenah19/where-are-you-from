@@ -1,0 +1,3 @@
+.DS_Store
+# Local preview-server config (used by the Claude desktop app)
+.claude/
