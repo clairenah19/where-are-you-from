@@ -72,6 +72,12 @@
                    autocapitalize="sentences" spellcheck="false" placeholder="Bonjour, Hola, こんにちは">
           </div>
 
+          <!-- Only visible when the panel is pulled all the way up (see css: .recent) -->
+          <section id="recent" class="recent" aria-label="Recent greetings">
+            <div class="eyebrow">Recent greetings</div>
+            <ul id="recentList" class="countries recent-list"></ul>
+          </section>
+
           <div id="pick" class="pick">
             <div class="pick-head">
               <div class="eyebrow">Choose your country</div>

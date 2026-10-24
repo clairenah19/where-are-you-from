@@ -7,7 +7,7 @@ A mobile-first 3D globe. Visitors type **hello in their own language**, choose *
 - Portrait-only UI (phones held sideways see a "rotate your device" notice)
 - 3D globe you can spin and pinch-zoom ([globe.gl](https://globe.gl))
 - Typing a greeting floats likely countries to the top ("Bonjour" suggests France, Canada, Belgium), including non-Latin scripts such as Korean, Japanese, Arabic and Cyrillic; you can always pick any country
-- The bottom panel is draggable: pull the handle up or down and it settles at the nearest height (closed, normal, or tall while choosing a country); a flick carries it further, a tap opens or closes it, and the arrow keys work too
+- The bottom panel is draggable: pull the handle up or down and it settles at the nearest height (closed, normal, or tall); a flick carries it further, a tap opens or closes it, and the arrow keys work too
 - Branded loading screen, count-up stats, and subtle motion that respects the "reduce motion" setting
 - No emoji anywhere: icons are inline SVG and flags are SVG images
 - No build step, plain static files: works as-is on GitHub Pages

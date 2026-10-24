@@ -167,12 +167,22 @@ button {
 /* The sheet rests at one of three heights (data-snap), set from JS:
      collapsed  just the handle, globe fills the screen
      default    fits its content; while choosing a country a fixed height so the list can scroll
-     tall       nearly full screen, only while choosing a country
+     tall       nearly full screen, in every step
    "drag" is the in-between state while the user is moving it or it is animating to a resting height;
    JS sets an exact pixel height then. */
 #app[data-phase="pick"] .sheet[data-snap="default"] { height: 66%; }
 .sheet[data-snap="tall"] { height: calc(100% - env(safe-area-inset-top) - 76px); }
 .sheet.dragging, .sheet.dragging * { transition: none !important; }
+
+/* Recent greetings fill the extra room when the panel is pulled up in the first and last steps.
+   Hidden otherwise, so the normal panel height is unchanged. */
+.recent { display: none; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+.sheet[data-snap="tall"] .recent, .sheet[data-snap="drag"] .recent { display: flex; }
+#app[data-phase="pick"] .sheet .recent { display: none; }
+.recent .eyebrow { margin-bottom: 4px; }
+.recent-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.recent-text strong { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recent-text small { font-size: 13px; color: var(--muted); }
 .sheet[data-snap="drag"] .sheet-body { grid-template-rows: 1fr; opacity: 1; visibility: visible; transition: none; }
 
 /* Handle: tap to open or close, drag to resize, or use the arrow keys. */

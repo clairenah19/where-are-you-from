@@ -10,6 +10,7 @@ const sheetToggle = $('#sheetToggle');
 const helloInput = $('#hello');
 const searchInput = $('#search');
 const listEl = $('#countries');
+const recentList = $('#recentList');
 const dropBtn = $('#drop');
 const dropLabel = $('#dropLabel');
 const againBtn = $('#again');
@@ -87,8 +88,6 @@ const STEP_LABELS = { idle: 'Step 1 of 2', pick: 'Step 2 of 2', done: 'Complete'
 function setPhase(phase) {
   app.dataset.phase = phase;
   stepLabel.textContent = STEP_LABELS[phase];
-  // 'tall' only exists while choosing a country.
-  if (phase !== 'pick' && sheet.dataset.snap === 'tall') setSnap('default');
 }
 
 // ----------------------------------------------------- viewport & orientation
@@ -277,6 +276,38 @@ function updateStats() {
 function refreshPins() {
   globe.pointsData([...state.pins.values()]);
   updateStats();
+  renderRecent();
+}
+
+/** The newest greetings, shown when the panel is pulled all the way up. */
+function renderRecent() {
+  const newest = [...state.pins.values()]
+    .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
+    .slice(0, 20);
+  const frag = document.createDocumentFragment();
+  if (!newest.length) {
+    const li = document.createElement('li');
+    li.className = 'empty';
+    li.textContent = state.loadFailed ? 'Greetings are unavailable right now.' : 'No greetings yet. Be the first.';
+    frag.append(li);
+  }
+  newest.forEach((pin) => {
+    const li = document.createElement('li');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.dataset.id = pin.id;
+    const text = document.createElement('span');
+    text.className = 'recent-text';
+    const greeting = document.createElement('strong');
+    greeting.textContent = pin.greeting;
+    const country = document.createElement('small');
+    country.textContent = pin.country_name;
+    text.append(greeting, country);
+    btn.append(flagEl(pin.country_code), text);
+    li.append(btn);
+    frag.append(li);
+  });
+  recentList.replaceChildren(frag);
 }
 
 let previewRing = null;
@@ -409,6 +440,19 @@ function clearSelection() {
 
 // -------------------------------------------------------------------- sheet
 
+// Tapping a recent greeting brings the panel back down and flies the globe to that pin.
+recentList.addEventListener('click', (e) => {
+  const pin = state.pins.get(e.target.closest('button[data-id]')?.dataset.id);
+  if (!pin) return;
+  moveToSnap('default');
+  controls.autoRotate = false;
+  clearTimeout(resumeTimer);
+  globe.pointOfView({ lat: pin.lat, lng: pin.lng, altitude: 1.8 }, REDUCED_MOTION ? 0 : 1000);
+  resumeTimer = setTimeout(() => {
+    controls.autoRotate = true;
+  }, 8000);
+});
+
 // The sheet rests at one of three heights (data-snap): 'collapsed' (just the handle), 'default', and,
 // while choosing a country, 'tall'. Drag the handle to resize it freely; on release it settles at the
 // nearest resting height (a flick carries it further). A tap toggles open/closed, and the arrow keys
@@ -419,9 +463,8 @@ const FLICK_LOOKAHEAD_MS = 180;
 const SETTLE_FALLBACK_MS = 650;
 
 const currentSnap = () => sheet.dataset.snap;
-// No 'tall' except while picking a country; with the keyboard open the default is already full height.
-const availableSnaps = () =>
-  app.dataset.phase === 'pick' && app.dataset.compact !== 'true' ? SNAP_ORDER : SNAP_ORDER.slice(0, 2);
+// With the keyboard open the default is already full height, so there is no separate 'tall'.
+const availableSnaps = () => (app.dataset.compact === 'true' ? SNAP_ORDER.slice(0, 2) : SNAP_ORDER);
 
 function describeSnap(snap) {
   sheetToggle.setAttribute('aria-expanded', String(snap !== 'collapsed'));
