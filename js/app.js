@@ -41,6 +41,7 @@ const state = {
   pins: new Map(), // id -> pin row
   lastDropAt: 0,
   saving: false,
+  loadFailed: false,
 };
 
 // ------------------------------------------------------------------ helpers
@@ -86,6 +87,8 @@ const STEP_LABELS = { idle: 'Step 1 of 2', pick: 'Step 2 of 2', done: 'Complete'
 function setPhase(phase) {
   app.dataset.phase = phase;
   stepLabel.textContent = STEP_LABELS[phase];
+  // 'tall' only exists while choosing a country.
+  if (phase !== 'pick' && sheet.dataset.snap === 'tall') setSnap('default');
 }
 
 // ----------------------------------------------------- viewport & orientation
@@ -241,8 +244,9 @@ function paintStats(pins, countries, final) {
     el.style.width = '';
   });
   if (final && pins === 0) {
-    statMain.textContent = 'No greetings yet';
-    statSub.textContent = 'Be the first';
+    // An empty globe because loading failed must not read as "nobody has said hello yet".
+    statMain.textContent = state.loadFailed ? 'Pins unavailable' : 'No greetings yet';
+    statSub.textContent = state.loadFailed ? 'Try again later' : 'Be the first';
     return;
   }
   statMain.textContent = `${pins.toLocaleString()} ${pins === 1 ? 'greeting' : 'greetings'}`;
@@ -405,43 +409,170 @@ function clearSelection() {
 
 // -------------------------------------------------------------------- sheet
 
-function setCollapsed(collapsed) {
-  sheet.dataset.collapsed = String(collapsed);
-  sheetToggle.setAttribute('aria-expanded', String(!collapsed));
-  sheetToggle.setAttribute('aria-label', collapsed ? 'Open panel' : 'Close panel');
-  if (collapsed) document.activeElement?.blur?.(); // drop the keyboard
-}
-const isCollapsed = () => sheet.dataset.collapsed === 'true';
+// The sheet rests at one of three heights (data-snap): 'collapsed' (just the handle), 'default', and,
+// while choosing a country, 'tall'. Drag the handle to resize it freely; on release it settles at the
+// nearest resting height (a flick carries it further). A tap toggles open/closed, and the arrow keys
+// step between heights.
+const SNAP_ORDER = ['collapsed', 'default', 'tall'];
+const DRAG_THRESHOLD_PX = 6;
+const FLICK_LOOKAHEAD_MS = 180;
+const SETTLE_FALLBACK_MS = 650;
 
-// Tap the handle to toggle, or swipe it down (close) / up (open). Taps are handled on pointerup
-// rather than waiting for a click, which can be unreliable on iOS after touch-action: none.
-let press = null;
+const currentSnap = () => sheet.dataset.snap;
+// No 'tall' except while picking a country; with the keyboard open the default is already full height.
+const availableSnaps = () =>
+  app.dataset.phase === 'pick' && app.dataset.compact !== 'true' ? SNAP_ORDER : SNAP_ORDER.slice(0, 2);
+
+function describeSnap(snap) {
+  sheetToggle.setAttribute('aria-expanded', String(snap !== 'collapsed'));
+  sheetToggle.setAttribute('aria-label', snap === 'collapsed' ? 'Open panel' : 'Close panel');
+}
+
+/** Rest at a height immediately, with no animation. */
+function setSnap(snap) {
+  sheet.style.height = '';
+  sheet.classList.remove('dragging');
+  sheet.dataset.snap = snap;
+  describeSnap(snap);
+  if (snap === 'collapsed') document.activeElement?.blur?.(); // drop the keyboard
+}
+
+/** Pixel height of each resting position, measured from the real layout (content height, 66%, ...). */
+function measureSnaps() {
+  const restore = { snap: sheet.dataset.snap, height: sheet.style.height };
+  sheet.classList.add('dragging'); // transitions off while we peek
+  sheet.style.height = '';
+  const heights = {};
+  for (const snap of availableSnaps()) {
+    sheet.dataset.snap = snap;
+    heights[snap] = sheet.getBoundingClientRect().height;
+  }
+  sheet.dataset.snap = restore.snap;
+  sheet.style.height = restore.height;
+  sheet.classList.remove('dragging');
+  return heights;
+}
+
+let cancelSettle = null;
+
+/** Animate from the current height to a resting position, then hand control back to the CSS. */
+function settle(snap, px) {
+  cancelSettle?.();
+  const from = sheet.getBoundingClientRect().height;
+  sheet.classList.add('dragging'); // pin the starting height without animating
+  sheet.dataset.snap = 'drag';
+  sheet.style.height = `${from}px`;
+  void sheet.offsetHeight;
+  sheet.classList.remove('dragging'); // animations back on
+  describeSnap(snap);
+
+  const finish = () => {
+    cancelSettle?.();
+    setSnap(snap);
+  };
+  const onEnd = (ev) => {
+    if (ev.target === sheet && ev.propertyName === 'height') finish();
+  };
+  const timer = setTimeout(finish, SETTLE_FALLBACK_MS);
+  sheet.addEventListener('transitionend', onEnd);
+  cancelSettle = () => {
+    clearTimeout(timer);
+    sheet.removeEventListener('transitionend', onEnd);
+    cancelSettle = null;
+  };
+
+  sheet.style.height = `${px}px`;
+  if (Math.abs(from - px) < 1) finish(); // already there
+}
+
+function moveToSnap(snap) {
+  const heights = measureSnaps();
+  if (heights[snap] !== undefined) settle(snap, heights[snap]);
+}
+
+/** Pixels per millisecond over the last ~100ms; positive means the finger is moving up (sheet growing). */
+function flickVelocity(samples) {
+  const last = samples[samples.length - 1];
+  const first = samples.find((s) => last.t - s.t <= 100) ?? samples[0];
+  const dt = last.t - first.t;
+  return dt > 0 ? (first.y - last.y) / dt : 0;
+}
+
+let drag = null; // { id, startY, startH, snaps, moving, samples }
 let lastPointerAction = 0;
 
 sheetToggle.addEventListener('pointerdown', (e) => {
-  if (e.pointerType === 'mouse' && e.button !== 0) return;
-  press = { y: e.clientY };
+  if (!e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) return;
+  cancelSettle?.(); // grabbing the sheet mid-animation takes over from where it is
+  drag = {
+    id: e.pointerId,
+    startY: e.clientY,
+    startH: sheet.getBoundingClientRect().height,
+    snaps: null,
+    moving: false,
+    samples: [{ y: e.clientY, t: e.timeStamp }],
+  };
   try {
     sheetToggle.setPointerCapture(e.pointerId);
   } catch {
     /* the pointer already ended (a very quick tap); the tap is still handled on pointerup */
   }
 });
-sheetToggle.addEventListener('pointerup', (e) => {
-  if (!press) return;
-  const dy = e.clientY - press.y;
-  press = null;
+
+sheetToggle.addEventListener('pointermove', (e) => {
+  if (!drag || e.pointerId !== drag.id) return;
+  const dy = drag.startY - e.clientY; // up is positive
+  if (!drag.moving) {
+    if (Math.abs(dy) < DRAG_THRESHOLD_PX) return;
+    drag.moving = true;
+    drag.snaps = measureSnaps();
+    sheet.dataset.snap = 'drag';
+    sheet.classList.add('dragging');
+    document.activeElement?.blur?.();
+  }
+  const limits = Object.values(drag.snaps);
+  const height = Math.min(Math.max(drag.startH + dy, Math.min(...limits)), Math.max(...limits));
+  sheet.style.height = `${height}px`;
+  drag.samples.push({ y: e.clientY, t: e.timeStamp });
+  if (drag.samples.length > 8) drag.samples.shift();
+});
+
+function endDrag(e, { cancelled = false } = {}) {
+  if (!drag || e.pointerId !== drag.id) return;
+  const d = drag;
+  drag = null;
   lastPointerAction = Date.now();
-  if (Math.abs(dy) > 24) setCollapsed(dy > 0);
-  else setCollapsed(!isCollapsed());
-});
-sheetToggle.addEventListener('pointercancel', () => {
-  press = null;
-});
-// Keyboard / assistive-technology activation (and a fallback if pointer events never fired).
+
+  if (!d.moving) {
+    if (!cancelled) moveToSnap(currentSnap() === 'collapsed' ? 'default' : 'collapsed'); // a tap
+    return;
+  }
+  // Settle at the resting height nearest to where the sheet is headed. The release counts as a sample,
+  // so a finger that paused before lifting reads as no speed rather than the speed it had earlier.
+  d.samples.push({ y: e.clientY, t: e.timeStamp });
+  const height = sheet.getBoundingClientRect().height;
+  const projected = height + flickVelocity(d.samples) * FLICK_LOOKAHEAD_MS;
+  const [snap, px] = Object.entries(d.snaps).reduce((best, entry) =>
+    Math.abs(entry[1] - projected) < Math.abs(best[1] - projected) ? entry : best,
+  );
+  settle(snap, px);
+}
+sheetToggle.addEventListener('pointerup', (e) => endDrag(e));
+sheetToggle.addEventListener('pointercancel', (e) => endDrag(e, { cancelled: true }));
+
+// Keyboard / assistive-technology: Enter and Space toggle (this click also covers a missing pointer event).
 sheetToggle.addEventListener('click', () => {
   if (Date.now() - lastPointerAction < 600) return;
-  setCollapsed(!isCollapsed());
+  moveToSnap(currentSnap() === 'collapsed' ? 'default' : 'collapsed');
+});
+sheetToggle.addEventListener('keydown', (e) => {
+  if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+  e.preventDefault();
+  const snaps = availableSnaps();
+  const i = snaps.indexOf(currentSnap());
+  if (i < 0) return; // mid-animation
+  const next = snaps[Math.min(Math.max(i + (e.key === 'ArrowUp' ? 1 : -1), 0), snaps.length - 1)];
+  if (next !== currentSnap()) moveToSnap(next);
 });
 
 // ------------------------------------------------------------------ events
@@ -539,7 +670,7 @@ againBtn.addEventListener('click', () => {
   helloInput.focus();
 });
 
-viewGlobeBtn.addEventListener('click', () => setCollapsed(true));
+viewGlobeBtn.addEventListener('click', () => moveToSnap('collapsed'));
 
 // ------------------------------------------------------------------- start
 
@@ -571,7 +702,8 @@ async function start() {
     },
     (err) => {
       console.error('Could not load pins', err);
-      toast('Couldn’t load pins. Check your Supabase settings.', { tone: 'error', ms: 5000 });
+      state.loadFailed = true;
+      toast('Couldn’t load pins right now. Please try again later.', { tone: 'error', ms: 5000 });
     },
   );
 
