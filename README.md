@@ -46,6 +46,14 @@ Pages-readiness notes:
 - Third-party assets load from the jsDelivr / esm.sh CDNs at **pinned versions**: `globe.gl@2.46.2`, `three-globe@2.45.4` (textures), `supabase-js@2.117.3`, `flag-icons@7.5.0` (SVG flags, MIT), and `@fontsource-variable/inter@5.3.0` (Inter, SIL OFL). To upgrade, change them in `index.html`, `js/app.js`, `js/countries.js` and `js/store.js` and re-test.
 - Pages is served over HTTPS, which Supabase and the globe need. Opening `index.html` directly from disk won't work (ES modules); use a local server.
 
+## 3. Keep Supabase from pausing
+
+Free Supabase projects are paused after about a week without activity (the site then shows "Pins unavailable"). [`.github/workflows/keepalive.yml`](.github/workflows/keepalive.yml) prevents that: every day it runs [`.github/scripts/keepalive.py`](.github/scripts/keepalive.py), which makes one tiny read request to the `pins` table. There is nothing to set up. It reads the project address and the public key from `js/config.js`.
+
+- **Run it by hand:** Actions tab, "Keep Supabase awake", "Run workflow".
+- **If it fails** (for example the project was already paused), the run shows as failed and GitHub emails you. Open the Supabase dashboard and click **Restore project**.
+- **One catch:** GitHub switches off scheduled workflows in a repo that has had no commits for 60 days (it emails a warning first). Any push, or re-enabling the workflow in the Actions tab, turns it back on.
+
 ## How it works
 
 | File | Purpose |
