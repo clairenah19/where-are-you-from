@@ -7,6 +7,7 @@ const app = $('#app');
 const globeEl = $('#globe');
 const sheet = $('#sheet');
 const sheetToggle = $('#sheetToggle');
+const sheetExpand = $('#sheetExpand');
 const helloInput = $('#hello');
 const searchInput = $('#search');
 const listEl = $('#countries');
@@ -469,6 +470,7 @@ const availableSnaps = () => (app.dataset.compact === 'true' ? SNAP_ORDER.slice(
 function describeSnap(snap) {
   sheetToggle.setAttribute('aria-expanded', String(snap !== 'collapsed'));
   sheetToggle.setAttribute('aria-label', snap === 'collapsed' ? 'Open panel' : 'Close panel');
+  sheetExpand.setAttribute('aria-label', snap === 'tall' ? 'Shrink panel' : 'Expand panel');
 }
 
 /** Rest at a height immediately, with no animation. */
@@ -602,6 +604,9 @@ function endDrag(e, { cancelled = false } = {}) {
 }
 sheetToggle.addEventListener('pointerup', (e) => endDrag(e));
 sheetToggle.addEventListener('pointercancel', (e) => endDrag(e, { cancelled: true }));
+
+// A plain tap alternative to dragging: expand to the tallest height, or shrink back to normal.
+sheetExpand.addEventListener('click', () => moveToSnap(currentSnap() === 'tall' ? 'default' : 'tall'));
 
 // Keyboard / assistive-technology: Enter and Space toggle (this click also covers a missing pointer event).
 sheetToggle.addEventListener('click', () => {

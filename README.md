@@ -9,6 +9,7 @@ A mobile-first 3D globe. Visitors type **hello in their own language**, choose *
 - Typing a greeting floats likely countries to the top ("Bonjour" suggests France, Canada, Belgium), including non-Latin scripts such as Korean, Japanese, Arabic and Cyrillic; you can always pick any country
 - The bottom panel is draggable: pull the handle up or down and it settles at the nearest height (closed, normal, or tall); a flick carries it further, a tap opens or closes it, and the arrow keys work too
 - Branded loading screen, count-up stats, and subtle motion that respects the "reduce motion" setting
+- Mobile accessibility: every control is at least 44px, text meets WCAG 4.5:1 contrast, keyboard focus is always visible, and the draggable panel also has a tap button and arrow-key control as alternatives to dragging
 - No emoji anywhere: icons are inline SVG and flags are SVG images
 - No build step, plain static files: works as-is on GitHub Pages
 - Runs in **demo mode** (pins saved in the browser only, shown with a "Demo" badge) until you add Supabase keys
