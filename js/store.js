@@ -5,6 +5,10 @@ import { COUNTRY_BY_CODE } from './countries.js';
 
 export const isLive = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
+// crypto.randomUUID needs iOS 15.4+; older iPhones fall back to a random string (demo mode only).
+const newId = () =>
+  globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+
 const TABLE = 'pins';
 const COLUMNS = 'id,created_at,greeting,country_code,country_name,lat,lng';
 const PAGE = 1000; // PostgREST's default max rows per request
@@ -74,7 +78,7 @@ function seedPins() {
   return DEMO_SEED.map(([greeting, code], i) => {
     const c = COUNTRY_BY_CODE.get(code);
     return {
-      id: crypto.randomUUID(),
+      id: newId(),
       created_at: new Date(now - i * 60000).toISOString(),
       greeting,
       country_code: code,
@@ -107,7 +111,7 @@ function saveLocal(pins) {
 }
 
 function addLocal(pin) {
-  const row = { id: crypto.randomUUID(), created_at: new Date().toISOString(), ...pin };
+  const row = { id: newId(), created_at: new Date().toISOString(), ...pin };
   saveLocal([row, ...loadLocal()]);
   return row;
 }

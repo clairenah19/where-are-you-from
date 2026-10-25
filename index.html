@@ -3,7 +3,18 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
-  <meta name="theme-color" content="#04070f">
+  <meta id="themeColor" name="theme-color" content="#04070f">
+  <!-- Pick the theme before anything paints, so there is no flash of the wrong colours. A saved choice wins;
+       otherwise follow the phone's light/dark setting. -->
+  <script>
+    (function () {
+      var saved = null;
+      try { saved = localStorage.getItem('orbit.theme'); } catch (e) {}
+      var light = saved ? saved === 'light' : !!(window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches);
+      document.documentElement.setAttribute('data-theme', light ? 'light' : 'dark');
+      document.getElementById('themeColor').setAttribute('content', light ? '#eef2fa' : '#04070f');
+    })();
+  </script>
   <meta name="description" content="Say hello in your language, pick your country, and drop a pin on the globe.">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
@@ -39,9 +50,15 @@
           <span class="brand-tag">Where are you from?</span>
         </div>
       </div>
-      <div id="stats" class="stats" data-state="loading" aria-live="polite">
-        <span class="stats-main"><span class="live-dot" aria-hidden="true"></span><span id="statMain" class="skeleton" style="width:76px">&nbsp;</span></span>
-        <span id="statSub" class="stats-sub skeleton" style="width:58px">&nbsp;</span>
+      <div class="top-right">
+        <div id="stats" class="stats" data-state="loading" aria-live="polite">
+          <span class="stats-main"><span class="live-dot" aria-hidden="true"></span><span id="statMain" class="skeleton" style="width:76px">&nbsp;</span></span>
+          <span id="statSub" class="stats-sub skeleton" style="width:58px">&nbsp;</span>
+        </div>
+        <button id="themeToggle" class="theme-btn" type="button" aria-label="Switch to light mode">
+          <svg class="icon-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
+        </button>
       </div>
     </header>
 

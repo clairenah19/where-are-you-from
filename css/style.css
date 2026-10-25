@@ -28,7 +28,63 @@
   --r-lg: 24px;
   --ease: cubic-bezier(0.22, 0.8, 0.24, 1);
   --font: "Inter Variable", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  /* Theme-dependent values that used to be hard-coded */
+  --app-glow: #0b1330;
+  --header-fade: rgba(4, 7, 15, 0.88);
+  --header-fade-0: rgba(4, 7, 15, 0);
+  --shadow-sheet: 0 -16px 48px rgba(0, 0, 0, 0.5);
+  --shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.4);
+  --handle: rgba(255, 255, 255, 0.24);
+  --handle-hover: rgba(255, 255, 255, 0.45);
+  --handle-active: rgba(255, 255, 255, 0.55);
+  --focus: #fff;
+  --flag-ring: rgba(255, 255, 255, 0.14);
+  --accent-border: rgba(239, 67, 82, 0.5);
+  --toast-bg: rgba(14, 20, 42, 0.94);
+  --tip-bg: rgba(10, 15, 33, 0.95);
+  --skeleton-lo: rgba(255, 255, 255, 0.06);
+  --skeleton-hi: rgba(255, 255, 255, 0.15);
+  --warn-bg: rgba(245, 184, 74, 0.12);
+  --warn-border: rgba(245, 184, 74, 0.3);
   color-scheme: dark;
+}
+
+/* Light theme. Text colours keep at least 4.5:1 against their backgrounds. */
+:root[data-theme="light"] {
+  --bg: #eef2fa;
+  --surface: rgba(255, 255, 255, 0.88);
+  --surface-solid: #fbfcfe;
+  --fill: rgba(15, 23, 42, 0.05);
+  --fill-strong: rgba(15, 23, 42, 0.09);
+  --border: rgba(15, 23, 42, 0.1);
+  --border-strong: rgba(15, 23, 42, 0.16);
+  --text: #0f172a;
+  --muted: #55607a;
+  --faint: #586280;
+  --accent: #d92d43;
+  --accent-hover: #c9283c;
+  --accent-press: #b82337;
+  --accent-soft: rgba(217, 45, 67, 0.1);
+  --live: #047857;
+  --warn: #b45309;
+  --app-glow: #ffffff;
+  --header-fade: rgba(238, 242, 250, 0.92);
+  --header-fade-0: rgba(238, 242, 250, 0);
+  --shadow-sheet: 0 -12px 40px rgba(15, 23, 42, 0.16);
+  --shadow-pop: 0 12px 32px rgba(15, 23, 42, 0.18);
+  --handle: rgba(15, 23, 42, 0.22);
+  --handle-hover: rgba(15, 23, 42, 0.4);
+  --handle-active: rgba(15, 23, 42, 0.5);
+  --focus: #0f172a;
+  --flag-ring: rgba(15, 23, 42, 0.18);
+  --accent-border: rgba(217, 45, 67, 0.55);
+  --toast-bg: rgba(255, 255, 255, 0.96);
+  --tip-bg: rgba(255, 255, 255, 0.96);
+  --skeleton-lo: rgba(15, 23, 42, 0.06);
+  --skeleton-hi: rgba(15, 23, 42, 0.14);
+  --warn-bg: rgba(180, 83, 9, 0.1);
+  --warn-border: rgba(180, 83, 9, 0.32);
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; }
@@ -72,10 +128,11 @@ button {
   position: relative;
   width: 100%;
   max-width: 480px;
+  height: 100vh;  /* iOS before 15.4 does not know dvh */
   height: 100dvh;
   display: flex;
   flex-direction: column;
-  background: radial-gradient(ellipse at 50% 30%, #0b1330 0%, var(--bg) 70%);
+  background: radial-gradient(ellipse at 50% 30%, var(--app-glow) 0%, var(--bg) 70%);
   overflow: hidden;
 }
 
@@ -98,7 +155,7 @@ button {
   justify-content: space-between;
   gap: 12px;
   padding: calc(env(safe-area-inset-top) + 14px) 18px 30px;
-  background: linear-gradient(to bottom, rgba(4, 7, 15, 0.88), rgba(4, 7, 15, 0));
+  background: linear-gradient(to bottom, var(--header-fade), var(--header-fade-0));
   pointer-events: none;
 }
 
@@ -115,13 +172,49 @@ button {
   padding: 2px 7px;
   font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase;
   color: var(--warn);
-  background: rgba(245, 184, 74, 0.12);
-  border: 1px solid rgba(245, 184, 74, 0.3);
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
   border-radius: 999px;
   pointer-events: auto;
 }
 
-.stats { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; text-align: right; flex: none; }
+.top-right { display: flex; align-items: flex-start; gap: 4px; flex: none; margin-right: -8px; }
+.stats { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; text-align: right; flex: none; padding-top: 2px; }
+
+/* Light / dark switch. The header ignores pointer events, so the button opts back in. */
+.theme-btn {
+  flex: none;
+  display: grid; place-items: center;
+  width: 44px; height: 44px;
+  margin-top: -6px;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  pointer-events: auto;
+  transition: color 0.2s, background 0.2s, transform 0.15s var(--ease);
+}
+@media (hover: hover) { .theme-btn:hover { color: var(--text); background: var(--fill); } }
+.theme-btn:active { transform: scale(0.92); color: var(--text); }
+.theme-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
+.theme-btn svg { grid-area: 1 / 1; transition: opacity 0.3s, transform 0.5s var(--ease); }
+/* show the sun in dark mode (tap for light) and the moon in light mode (tap for dark) */
+.theme-btn .icon-moon { opacity: 0; transform: rotate(-60deg) scale(0.6); }
+:root[data-theme="light"] .theme-btn .icon-sun { opacity: 0; transform: rotate(60deg) scale(0.6); }
+:root[data-theme="light"] .theme-btn .icon-moon { opacity: 1; transform: none; }
+
+/* very narrow phones (320px): drop the tagline so the header still fits */
+@media (max-width: 359px) { .brand-tag { display: none; } }
+
+/* Installed to an iPhone's home screen the status bar is always white text drawn over the page, so give
+   it a dark strip in light mode to stay readable. */
+@media (display-mode: standalone) {
+  :root[data-theme="light"] #app::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; z-index: 30;
+    height: env(safe-area-inset-top); background: rgba(4, 7, 15, 0.92); pointer-events: none;
+  }
+}
 .stats-main {
   display: inline-flex; align-items: center; gap: 7px;
   font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums;
@@ -142,7 +235,7 @@ button {
   height: 13px;
   border-radius: 6px;
   color: transparent;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.06) 25%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.06) 75%);
+  background: linear-gradient(90deg, var(--skeleton-lo) 25%, var(--skeleton-hi) 50%, var(--skeleton-lo) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s linear infinite;
 }
@@ -159,7 +252,7 @@ button {
   background: var(--surface);
   border-top: 1px solid var(--border-strong);
   border-radius: var(--r-lg) var(--r-lg) 0 0;
-  box-shadow: 0 -16px 48px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-sheet);
   -webkit-backdrop-filter: blur(18px) saturate(1.2);
   backdrop-filter: blur(18px) saturate(1.2);
   overflow: hidden; /* content is clipped, not squashed, while the sheet is dragged short */
@@ -210,13 +303,13 @@ button {
 .sheet-handle {
   width: 40px; height: 5px;
   border-radius: 3px;
-  background: rgba(255, 255, 255, 0.24);
+  background: var(--handle);
   transition: background 0.2s, width 0.3s var(--ease);
 }
 @media (hover: hover) {
-  .sheet-toggle:hover .sheet-handle { background: rgba(255, 255, 255, 0.45); width: 52px; }
+  .sheet-toggle:hover .sheet-handle { background: var(--handle-hover); width: 52px; }
 }
-.sheet-toggle:active .sheet-handle { background: rgba(255, 255, 255, 0.5); width: 52px; }
+.sheet-toggle:active .sheet-handle { background: var(--handle-active); width: 52px; }
 
 .sheet-hint {
   display: none;
@@ -229,7 +322,7 @@ button {
 .sheet[data-snap="collapsed"] .sheet-hint { display: inline-flex; }
 .sheet[data-snap="collapsed"] .sheet-toggle { padding-bottom: 8px; }
 .sheet.dragging .sheet-toggle { cursor: grabbing; }
-.sheet.dragging .sheet-handle { background: rgba(255, 255, 255, 0.55); width: 52px; }
+.sheet.dragging .sheet-handle { background: var(--handle-active); width: 52px; }
 
 /* Body collapses with a height animation (grid rows 1fr -> 0fr). */
 .sheet-body {
@@ -289,7 +382,7 @@ button {
 }
 @media (hover: hover) { .icon-btn:hover { color: var(--text); background: var(--fill); } }
 .icon-btn:active { transform: scale(0.94); color: var(--text); }
-.icon-btn:focus-visible { outline: 2px solid #fff; outline-offset: -2px; }
+.icon-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
 .icon-btn svg { transition: transform 0.35s var(--ease); }
 .sheet[data-snap="tall"] .icon-btn svg { transform: rotate(180deg); }
 .step-label { font-size: 12px; font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -405,9 +498,9 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; }
   .countries button:hover { background: var(--fill); }
 }
 .countries button:active { transform: scale(0.985); background: var(--fill-strong); }
-.countries button[aria-pressed="true"] { background: var(--accent-soft); border-color: rgba(239, 67, 82, 0.5); }
+.countries button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent-border); }
 .countries button > span:first-of-type { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.countries button:focus-visible { outline: 2px solid #fff; outline-offset: -2px; }
+.countries button:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
 .countries .empty { padding: 20px 4px; color: var(--muted); font-size: 14px; }
 
 .row-check {
@@ -425,7 +518,7 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; }
   object-fit: cover;
   border-radius: 3px;
   background: var(--fill-strong);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14);
+  box-shadow: 0 0 0 1px var(--flag-ring);
 }
 
 /* ----- buttons ----- */
@@ -454,7 +547,7 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; }
 }
 .primary:active:not(:disabled) { transform: scale(0.985); background: var(--accent-strong-press); }
 .primary:disabled { color: var(--faint); background: var(--fill-strong); box-shadow: none; cursor: not-allowed; }
-.primary:focus-visible, .ghost:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.primary:focus-visible, .ghost:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 
 .btn-icon { position: relative; display: grid; place-items: center; width: 18px; height: 18px; }
 .btn-icon > * { grid-area: 1 / 1; transition: opacity 0.2s, transform 0.3s var(--ease); }
@@ -513,10 +606,10 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; }
   padding: 11px 16px;
   font-size: 15px; font-weight: 500;
   overflow-wrap: anywhere;
-  background: rgba(14, 20, 42, 0.94);
+  background: var(--toast-bg);
   border: 1px solid var(--border-strong);
   border-radius: 18px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-pop);
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
   transform: translate(-50%, -14px) scale(0.97);
@@ -533,10 +626,10 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; }
   display: flex; flex-direction: column; gap: 4px;
   padding: 9px 12px;
   font-family: var(--font);
-  background: rgba(10, 15, 33, 0.95);
+  background: var(--tip-bg);
   border: 1px solid var(--border-strong);
   border-radius: var(--r-sm);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--shadow-pop);
 }
 .pin-tip-greeting { max-width: 240px; font-size: 15px; font-weight: 600; color: var(--text); overflow-wrap: anywhere; }
 .pin-tip-country { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted); }
@@ -551,6 +644,8 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; }
   --tilt: -11deg;   /* look slightly down on the ring */
   --radius: 124px;  /* ring radius */
   --orbit-time: 3s;
+  /* the intro is always dark, whichever theme the app is in */
+  --bg: #04070f; --text: #eef1f8; --muted: #8e99b6; --fill-strong: rgba(255, 255, 255, 0.09); --accent: #ef4352;
   position: absolute; inset: 0;
   z-index: 20;
   display: flex; flex-direction: column; align-items: center; justify-content: center;

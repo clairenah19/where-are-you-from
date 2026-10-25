@@ -25,6 +25,8 @@ const splashMsg = $('#splashMsg');
 const splashEl = $('#splash');
 const splashSpin = $('#splashSpin');
 const splashPin = $('#splashPin');
+const themeToggle = $('#themeToggle');
+const themeColorMeta = $('#themeColor');
 const toastEl = $('#toast');
 
 // Pinned CDN version so a future three-globe release can't change the look.
@@ -34,6 +36,8 @@ const PIN_COLOR = '#ff3344';
 const PIN_HEIGHT = 0.09;
 const PIN_HEIGHT_HOVER = 0.15;
 const COOLDOWN_MS = 10_000;
+const ORBIT_MS = 3000; // keep in step with --orbit-time in the CSS
+const PIN_DROP_MS = 850; // keep in step with the pinDrop animation
 const INTRO_HOLD_MS = 650; // how long the finished ORBIT logo stays up before the splash lifts
 const INTRO_FAILSAFE_MS = 9000; // never let the intro block the app
 const SPLASH_FAILSAFE_MS = 15_000;
@@ -54,6 +58,7 @@ const state = {
 // ------------------------------------------------------------------ helpers
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const currentTheme = () => (document.documentElement.dataset.theme === 'light' ? 'light' : 'dark');
 
 const esc = (s) =>
   String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -160,7 +165,7 @@ const pinHeight = (p) => (p === hoverPin ? PIN_HEIGHT_HOVER : PIN_HEIGHT);
 const globe = Globe({ animateIn: true })(globeEl)
   .globeImageUrl(TEXTURE_URLS[0])
   .bumpImageUrl(TEXTURE_URLS[1])
-  .backgroundImageUrl(TEXTURE_URLS[2])
+  .backgroundImageUrl(document.documentElement.dataset.theme === 'light' ? null : TEXTURE_URLS[2])
   .atmosphereColor('#6db8ff')
   .atmosphereAltitude(0.22)
   // Red pins: a thin stem standing off the surface; it rises when hovered.
@@ -236,6 +241,50 @@ controls.addEventListener('end', () => {
     controls.autoRotate = canAutoRotate();
   }, 4000);
 });
+
+// ---------------------------------------------------------------------- theme
+
+// The page already picked its theme in <head> (a saved choice, or the phone's light/dark setting).
+// Here we keep the globe, browser chrome colour and button in step, and handle the toggle.
+const THEME_KEY = 'orbit.theme';
+const THEME_COLORS = { dark: '#04070f', light: '#eef2fa' };
+
+function savedTheme() {
+  try {
+    return localStorage.getItem(THEME_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function applyTheme(theme, { save = false } = {}) {
+  document.documentElement.dataset.theme = theme;
+  themeColorMeta.setAttribute('content', THEME_COLORS[theme]);
+  themeToggle.setAttribute('aria-label', theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode');
+  if (theme === 'light') {
+    globe.backgroundImageUrl(null).backgroundColor(THEME_COLORS.light).atmosphereColor('#8fb6ff');
+  } else {
+    globe.backgroundImageUrl(TEXTURE_URLS[2]).backgroundColor(THEME_COLORS.dark).atmosphereColor('#6db8ff');
+  }
+  if (save) {
+    try {
+      localStorage.setItem(THEME_KEY, theme);
+    } catch {
+      /* private mode: the choice just won't be remembered */
+    }
+  }
+}
+
+themeToggle.addEventListener('click', () => applyTheme(currentTheme() === 'light' ? 'dark' : 'light', { save: true }));
+
+// Until the user picks a theme themselves, follow the phone's setting as it changes.
+const systemLight = window.matchMedia('(prefers-color-scheme: light)');
+const onSystemThemeChange = (e) => {
+  if (!savedTheme()) applyTheme(e.matches ? 'light' : 'dark');
+};
+if (systemLight.addEventListener) systemLight.addEventListener('change', onSystemThemeChange);
+else systemLight.addListener?.(onSystemThemeChange); // Safari before 14
+applyTheme(currentTheme());
 
 // ---------------------------------------------------------------------- stats
 
@@ -746,6 +795,9 @@ function playIntro() {
     const done = () => resolve();
     setTimeout(done, INTRO_FAILSAFE_MS);
 
+    // Very old WebKit cannot report CSS animation progress; fall back to the clock instead.
+    const canTrack = typeof window.CSSAnimation === 'function' && typeof Element.prototype.getAnimations === 'function';
+
     const dropPin = () => {
       // Where did the I end up on screen? Aim the pin there.
       const stage = splashPin.parentElement.getBoundingClientRect();
@@ -757,14 +809,15 @@ function playIntro() {
       splashEl.style.setProperty('--fall', `${stage.top + y + 80}px`); // from above the top of the screen
       splashEl.classList.add('drop');
       void splashPin.getBoundingClientRect(); // make the browser start the animation now
-      const fall = findAnimation(splashPin, 'pinDrop');
+      const fall = canTrack && findAnimation(splashPin, 'pinDrop');
       if (fall) fall.finished.then(done, done);
-      else done();
+      else setTimeout(done, PIN_DROP_MS + 100);
     };
 
-    const orbit = findAnimation(splashSpin, 'orbit');
+    const orbit = canTrack && findAnimation(splashSpin, 'orbit');
     if (orbit) orbit.finished.then(dropPin, dropPin);
-    else dropPin();
+    else if (!canTrack) setTimeout(dropPin, Math.max(0, ORBIT_MS + 250 - performance.now()));
+    else dropPin(); // animations are off: nothing to wait for
   });
 }
 
@@ -782,7 +835,7 @@ async function start() {
   const failsafe = wait(SPLASH_FAILSAFE_MS);
 
   // Everything the first view needs: globe, textures, font, and the pins.
-  const world = Promise.all([globeReady, document.fonts?.ready, ...TEXTURE_URLS.map(preload)]).then(() =>
+  const world = Promise.all([globeReady, document.fonts?.ready, ...TEXTURE_URLS.slice(0, currentTheme() === 'light' ? 2 : 3).map(preload)]).then(() =>
     setSplashMessage('Loading greetings'),
   );
   const loaded = store.loadPins().then(
