@@ -542,8 +542,15 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; }
 .pin-tip-country { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted); }
 .pin-tip .flag { width: 18px; height: 13px; border-radius: 2px; }
 
-/* ----- loading splash ----- */
+/* ----- loading intro -----
+   ORBIT circles a globe (letters face outward, like a film-studio logo), the ring slows to a stop with
+   the word facing the viewer, then a red pin drops from the top and takes the place of the "I". The
+   ring and globe share one 3D space so letters behind the globe are hidden. JS measures where the I
+   ended up and sets --pin-x / --pin-y, then adds .drop. */
 .splash {
+  --tilt: -11deg;   /* look slightly down on the ring */
+  --radius: 124px;  /* ring radius */
+  --orbit-time: 3s;
   position: absolute; inset: 0;
   z-index: 20;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -551,28 +558,75 @@ input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; }
   transition: opacity 0.7s var(--ease), visibility 0s 0.7s;
 }
 #app[data-ready="true"] .splash { opacity: 0; visibility: hidden; pointer-events: none; }
-.splash-orbit { position: relative; width: 116px; height: 116px; display: grid; place-items: center; }
-.splash-ring { position: absolute; inset: 0; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.1); }
-.splash-sweep {
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+
+.splash-stage { position: relative; width: 320px; height: 250px; perspective: 900px; perspective-origin: 50% 36%; }
+.splash-tilt { position: absolute; inset: 0; transform-style: preserve-3d; transform: rotateX(var(--tilt)); }
+
+/* The globe: the world map slides across a shaded disc. It faces the viewer despite the tilt. */
+.splash-globe {
+  position: absolute; left: 50%; top: 50%;
+  width: 148px; height: 148px; margin: -74px 0 0 -74px;
+  border-radius: 50%;
+  background: #1b5fb8 url("https://cdn.jsdelivr.net/npm/three-globe@2.45.4/example/img/earth-blue-marble.jpg") repeat-x 0 0 / 296px 148px;
+  box-shadow: 0 0 44px 6px rgba(80, 150, 255, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  transform: rotateX(calc(-1 * var(--tilt)));
+  animation: earth 26s linear infinite;
+}
+.splash-globe::after {
+  content: ""; position: absolute; inset: 0; border-radius: 50%;
+  background:
+    radial-gradient(circle at 30% 28%, rgba(255, 255, 255, 0.3), transparent 36%),
+    radial-gradient(circle at 56% 52%, transparent 46%, rgba(2, 5, 18, 0.88) 100%);
+}
+
+.splash-spin {
   position: absolute; inset: 0;
-  border-radius: 50%;
-  background: conic-gradient(from 0deg, transparent 0deg, transparent 230deg, rgba(239, 67, 82, 0.6) 360deg);
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1px));
-  mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1px));
-  animation: spin 1.5s linear infinite;
+  transform-style: preserve-3d;
+  will-change: transform;
+  animation: orbit var(--orbit-time) cubic-bezier(0.1, 0.55, 0.2, 1) both;
 }
-.splash-sweep::after {
-  content: "";
-  position: absolute; top: -4px; left: 50%;
-  width: 8px; height: 8px; margin-left: -4px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 14px 3px rgba(239, 67, 82, 0.7);
+.splash-letter {
+  position: absolute; left: 50%; top: 50%;
+  width: 36px; height: 52px; margin: -26px 0 0 -18px;
+  display: grid; place-items: center;
+  /* around the ring, facing outward, then stood upright against the tilt */
+  transform: rotateY(var(--a)) translateZ(var(--radius)) rotateX(calc(-1 * var(--tilt)));
 }
-.splash-logo { border-radius: 15px; box-shadow: 0 0 0 1px var(--border-strong), 0 12px 32px rgba(0, 0, 0, 0.5); animation: breathe 2.6s ease-in-out infinite; }
-.splash-name { margin: 24px 0 4px; font-size: 22px; font-weight: 650; letter-spacing: 0.01em; animation: rise 0.7s var(--ease) 0.1s both; }
-.splash-msg { margin: 0; font-size: 13px; color: var(--muted); animation: rise 0.7s var(--ease) 0.2s both; }
-.splash-bar { margin-top: 22px; width: 120px; height: 2px; overflow: hidden; border-radius: 2px; background: var(--fill-strong); }
+.splash-letter .glyph {
+  display: block;
+  font-size: 44px; font-weight: 800; line-height: 1; letter-spacing: 0;
+  color: #fff;
+  text-shadow: 0 0 10px rgba(4, 7, 15, 0.95), 0 2px 14px rgba(4, 7, 15, 0.9);
+}
+/* the I disappears the instant the pin lands on it */
+.splash.drop #splashI .glyph { animation: letterOut 0.01s linear 0.5s forwards; }
+
+.splash-pin {
+  position: absolute; left: var(--pin-x, 50%); top: var(--pin-y, 0);
+  z-index: 3;
+  margin: -17px 0 0 -12.5px; /* centre the 25x34 pin on the point */
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.55));
+  opacity: 0;
+  pointer-events: none;
+}
+.splash.drop .splash-pin { animation: pinDrop 0.85s both; }
+
+.splash-ripple {
+  position: absolute; left: var(--pin-x, 50%); top: calc(var(--pin-y, 0px) + 12px);
+  width: 14px; height: 14px; margin: -7px 0 0 -7px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 43, 58, 0.9);
+  opacity: 0; pointer-events: none;
+}
+.splash.drop .splash-ripple { animation: ripple 0.9s ease-out 0.5s forwards; }
+
+.splash-msg { margin: 14px 0 0; font-size: 13px; color: var(--muted); animation: rise 0.7s var(--ease) 0.3s both; }
+.splash-bar { margin-top: 18px; width: 120px; height: 2px; overflow: hidden; border-radius: 2px; background: var(--fill-strong); }
 .splash-bar i { display: block; width: 45%; height: 100%; background: linear-gradient(90deg, transparent, var(--accent), transparent); animation: slide 1.3s var(--ease) infinite; }
 
 /* ----- orientation notice (phones held sideways; set from JS using the device's real orientation) ----- */
@@ -613,6 +667,19 @@ html[data-landscape="true"] .rotate { display: flex; }
 
 /* ----- motion ----- */
 @keyframes spin { to { transform: rotate(360deg); } }
+/* Intro: 1.5 turns, fast then slowing to a stop with the word facing the viewer. */
+@keyframes orbit { from { transform: rotateY(-540deg); } to { transform: rotateY(0deg); } }
+@keyframes earth { to { background-position-x: -296px; } }
+@keyframes letterOut { to { opacity: 0; } }
+/* The pin falls from above the screen, hits the I, squashes and settles. */
+@keyframes pinDrop {
+  0%   { opacity: 1; transform: translateY(calc(-1 * var(--fall, 420px))); animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.5); }
+  58%  { opacity: 1; transform: translateY(0) scale(1, 1); animation-timing-function: ease-out; }
+  70%  { opacity: 1; transform: translateY(-16px) scale(0.94, 1.07); animation-timing-function: ease-in; }
+  84%  { opacity: 1; transform: translateY(0) scale(1.1, 0.88); animation-timing-function: ease-out; }
+  100% { opacity: 1; transform: translateY(0) scale(1, 1); }
+}
+@keyframes ripple { 0% { opacity: 0.9; transform: scale(0.4); } 100% { opacity: 0; transform: scale(5.5); } }
 @keyframes shimmer { to { background-position: -200% 0; } }
 @keyframes pulse {
   0% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.55); }

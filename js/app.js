@@ -22,6 +22,9 @@ const statMain = $('#statMain');
 const statSub = $('#statSub');
 const stepLabel = $('#stepLabel');
 const splashMsg = $('#splashMsg');
+const splashEl = $('#splash');
+const splashSpin = $('#splashSpin');
+const splashPin = $('#splashPin');
 const toastEl = $('#toast');
 
 // Pinned CDN version so a future three-globe release can't change the look.
@@ -31,8 +34,10 @@ const PIN_COLOR = '#ff3344';
 const PIN_HEIGHT = 0.09;
 const PIN_HEIGHT_HOVER = 0.15;
 const COOLDOWN_MS = 10_000;
-const MIN_SPLASH_MS = 1100; // avoid a flash of the splash screen on fast connections
+const INTRO_HOLD_MS = 650; // how long the finished ORBIT logo stays up before the splash lifts
+const INTRO_FAILSAFE_MS = 9000; // never let the intro block the app
 const SPLASH_FAILSAFE_MS = 15_000;
+const INTRO_PIN_NUDGE_PX = 0; // fine-tune where the pin sits on the I
 const COMPACT_BELOW_PX = 500; // visible height under which the sheet switches to its compact layout
 const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -726,6 +731,43 @@ function setSplashMessage(text) {
   splashMsg.textContent = text;
 }
 
+/** The CSS animation with this name that is running (or has already finished) on an element. */
+function findAnimation(el, name) {
+  return el.getAnimations().find((a) => a.animationName === name);
+}
+
+/**
+ * Plays the intro: ORBIT circles the globe and stops facing the viewer, then the pin falls onto the I.
+ * Resolves when the pin has landed. Written to cope with the orbit already being over by the time this
+ * runs (slow script load), or never having run at all (reduced motion / animations unavailable).
+ */
+function playIntro() {
+  return new Promise((resolve) => {
+    const done = () => resolve();
+    setTimeout(done, INTRO_FAILSAFE_MS);
+
+    const dropPin = () => {
+      // Where did the I end up on screen? Aim the pin there.
+      const stage = splashPin.parentElement.getBoundingClientRect();
+      const glyph = $('#splashI .glyph').getBoundingClientRect();
+      const x = glyph.left + glyph.width / 2 - stage.left;
+      const y = glyph.top + glyph.height / 2 - stage.top + INTRO_PIN_NUDGE_PX;
+      splashEl.style.setProperty('--pin-x', `${x}px`);
+      splashEl.style.setProperty('--pin-y', `${y}px`);
+      splashEl.style.setProperty('--fall', `${stage.top + y + 80}px`); // from above the top of the screen
+      splashEl.classList.add('drop');
+      void splashPin.getBoundingClientRect(); // make the browser start the animation now
+      const fall = findAnimation(splashPin, 'pinDrop');
+      if (fall) fall.finished.then(done, done);
+      else done();
+    };
+
+    const orbit = findAnimation(splashSpin, 'orbit');
+    if (orbit) orbit.finished.then(dropPin, dropPin);
+    else dropPin();
+  });
+}
+
 function revealApp() {
   app.dataset.ready = 'true';
   // Glide in from the zoomed-out start position.
@@ -755,7 +797,9 @@ async function start() {
     },
   );
 
-  await Promise.race([Promise.all([world, loaded, wait(MIN_SPLASH_MS)]), failsafe]);
+  const intro = playIntro().then(() => wait(INTRO_HOLD_MS));
+
+  await Promise.race([Promise.all([world, loaded, intro]), failsafe]);
   revealed = true;
   revealApp();
   refreshPins();

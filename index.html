@@ -22,8 +22,10 @@
   <!-- Inter (variable), pinned. Served by jsDelivr, so no request goes to Google. -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/inter@5.3.0/index.css">
   <link rel="stylesheet" href="css/style.css">
+  <!-- The intro globe uses this texture; start fetching it immediately. -->
+  <link rel="preload" as="image" href="https://cdn.jsdelivr.net/npm/three-globe@2.45.4/example/img/earth-blue-marble.jpg">
   <!-- 3D globe (three.js bundled inside). Loaded from a CDN so there is no build step. -->
-  <script src="https://cdn.jsdelivr.net/npm/globe.gl@2.46.2/dist/globe.gl.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/globe.gl@2.46.2/dist/globe.gl.min.js"></script>
 </head>
 <body>
   <div id="app" data-phase="idle" data-ready="false">
@@ -116,13 +118,27 @@
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
+    <!-- Loading intro: ORBIT circles a globe, then a pin drops in to replace the I. -->
     <div id="splash" class="splash" role="status" aria-live="polite">
-      <div class="splash-orbit" aria-hidden="true">
-        <span class="splash-ring"></span>
-        <span class="splash-sweep"></span>
-        <img class="splash-logo" src="icon.svg" alt="" width="56" height="56">
+      <span class="sr-only">Orbit</span>
+      <div class="splash-stage" aria-hidden="true">
+        <div class="splash-tilt">
+          <div class="splash-globe"></div>
+          <!-- Angles space the letters by their real widths (the I slot is pin-wide), so the word looks evenly set. -->
+          <div id="splashSpin" class="splash-spin">
+            <span class="splash-letter" style="--a:-32.6deg"><span class="glyph">O</span></span>
+            <span class="splash-letter" style="--a:-14.8deg"><span class="glyph">R</span></span>
+            <span class="splash-letter" style="--a:2.1deg"><span class="glyph">B</span></span>
+            <span id="splashI" class="splash-letter" style="--a:17.6deg"><span class="glyph">I</span></span>
+            <span class="splash-letter" style="--a:32.6deg"><span class="glyph">T</span></span>
+          </div>
+        </div>
+        <span class="splash-ripple"></span>
+        <svg id="splashPin" class="splash-pin" viewBox="188 70 136 188" width="25" height="34">
+          <path d="M256 70c-38 0-68 30-68 68 0 52 68 120 68 120s68-68 68-120c0-38-30-68-68-68z" fill="#ff2b3a"/>
+          <circle cx="256" cy="138" r="26" fill="#fff"/>
+        </svg>
       </div>
-      <p class="splash-name">Orbit</p>
       <p id="splashMsg" class="splash-msg">Loading the globe</p>
       <div class="splash-bar" aria-hidden="true"><i></i></div>
     </div>
