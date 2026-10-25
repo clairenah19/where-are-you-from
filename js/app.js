@@ -32,6 +32,9 @@ const toastEl = $('#toast');
 // Pinned CDN version so a future three-globe release can't change the look.
 const TEXTURES = 'https://cdn.jsdelivr.net/npm/three-globe@2.45.4/example/img';
 const TEXTURE_URLS = ['earth-blue-marble.jpg', 'earth-topology.png', 'night-sky.png'].map((f) => `${TEXTURES}/${f}`);
+const WATER_MASK_URL = `${TEXTURES}/earth-water.png`; // white = sea, black = land
+// Light theme: the world is painted from the mask in soft, pale colours instead of the photo.
+const LIGHT_GLOBE = { ocean: [168, 200, 238], land: [244, 247, 251], coast: [112, 146, 192] };
 const PIN_COLOR = '#ff3344';
 const PIN_HEIGHT = 0.09;
 const PIN_HEIGHT_HOVER = 0.15;
@@ -163,8 +166,8 @@ let hoverPin = null;
 const pinHeight = (p) => (p === hoverPin ? PIN_HEIGHT_HOVER : PIN_HEIGHT);
 
 const globe = Globe({ animateIn: true })(globeEl)
-  .globeImageUrl(TEXTURE_URLS[0])
-  .bumpImageUrl(TEXTURE_URLS[1])
+  .globeImageUrl(currentTheme() === 'dark' ? TEXTURE_URLS[0] : null) // light mode paints its own, see applyTheme
+  .bumpImageUrl(currentTheme() === 'dark' ? TEXTURE_URLS[1] : null)
   .backgroundImageUrl(document.documentElement.dataset.theme === 'light' ? null : TEXTURE_URLS[2])
   .atmosphereColor('#6db8ff')
   .atmosphereAltitude(0.22)
@@ -257,15 +260,73 @@ function savedTheme() {
   }
 }
 
+let lightTexture = null;
+
+/** Paints the pale world map once (a promise of an image URL, or null if it could not be made). */
+function buildLightGlobeTexture() {
+  if (lightTexture) return lightTexture;
+  lightTexture = new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous'; // the CDN allows this, which lets us read the pixels
+    img.onerror = () => resolve(null);
+    img.onload = () => {
+      try {
+        const { width: w, height: h } = img;
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        ctx.drawImage(img, 0, 0);
+        const image = ctx.getImageData(0, 0, w, h);
+        const px = image.data;
+        const sea = new Uint8Array(w * h);
+        for (let i = 0; i < sea.length; i++) sea[i] = px[i * 4]; // 0 = land ... 255 = sea
+        const { ocean, land, coast } = LIGHT_GLOBE;
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            const i = y * w + x;
+            const isSea = sea[i] > 127;
+            // a coastline wherever land meets sea between neighbouring pixels
+            const edge = isSea !== sea[x + 1 < w ? i + 1 : i] > 127 || isSea !== sea[y + 1 < h ? i + w : i] > 127;
+            const t = sea[i] / 255; // soft mix keeps rivers and lakes faintly visible
+            const o = i * 4;
+            for (let c = 0; c < 3; c++) px[o + c] = edge ? coast[c] : land[c] + (ocean[c] - land[c]) * t;
+            px[o + 3] = 255;
+          }
+        }
+        ctx.putImageData(image, 0, 0);
+        canvas.toBlob((blob) => resolve(blob ? URL.createObjectURL(blob) : canvas.toDataURL('image/png')), 'image/png');
+      } catch {
+        resolve(null);
+      }
+    };
+    img.src = WATER_MASK_URL;
+  });
+  return lightTexture;
+}
+
+/** Dark: the photo of Earth at night-sky contrast. Light: a pale, flat map that sits well on white. */
+function styleGlobe(theme) {
+  const material = globe.globeMaterial();
+  if (theme === 'light') {
+    material.emissive?.setRGB(0.1, 0.12, 0.16); // lifts the shaded side so the whole globe stays pale
+    globe.bumpImageUrl(null).atmosphereColor('#a9c9f5');
+    buildLightGlobeTexture().then((url) => {
+      if (currentTheme() === 'light') globe.globeImageUrl(url ?? TEXTURE_URLS[0]); // photo only if painting failed
+    });
+  } else {
+    material.emissive?.setRGB(0, 0, 0);
+    globe.globeImageUrl(TEXTURE_URLS[0]).bumpImageUrl(TEXTURE_URLS[1]).atmosphereColor('#6db8ff');
+  }
+}
+
 function applyTheme(theme, { save = false } = {}) {
   document.documentElement.dataset.theme = theme;
   themeColorMeta.setAttribute('content', THEME_COLORS[theme]);
   themeToggle.setAttribute('aria-label', theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode');
-  if (theme === 'light') {
-    globe.backgroundImageUrl(null).backgroundColor(THEME_COLORS.light).atmosphereColor('#8fb6ff');
-  } else {
-    globe.backgroundImageUrl(TEXTURE_URLS[2]).backgroundColor(THEME_COLORS.dark).atmosphereColor('#6db8ff');
-  }
+  if (theme === 'light') globe.backgroundImageUrl(null).backgroundColor(THEME_COLORS.light);
+  else globe.backgroundImageUrl(TEXTURE_URLS[2]).backgroundColor(THEME_COLORS.dark);
+  styleGlobe(theme);
   if (save) {
     try {
       localStorage.setItem(THEME_KEY, theme);
@@ -835,7 +896,7 @@ async function start() {
   const failsafe = wait(SPLASH_FAILSAFE_MS);
 
   // Everything the first view needs: globe, textures, font, and the pins.
-  const world = Promise.all([globeReady, document.fonts?.ready, ...TEXTURE_URLS.slice(0, currentTheme() === 'light' ? 2 : 3).map(preload)]).then(() =>
+  const world = Promise.all([globeReady, document.fonts?.ready, ...(currentTheme() === 'light' ? [buildLightGlobeTexture()] : TEXTURE_URLS.map(preload))]).then(() =>
     setSplashMessage('Loading greetings'),
   );
   const loaded = store.loadPins().then(

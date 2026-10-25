@@ -9,7 +9,7 @@ A mobile-first 3D globe. Visitors type **hello in their own language**, choose *
 - Typing a greeting floats likely countries to the top ("Bonjour" suggests France, Canada, Belgium), including non-Latin scripts such as Korean, Japanese, Arabic and Cyrillic; you can always pick any country
 - The bottom panel is draggable: pull the handle up or down and it settles at the nearest height (closed, normal, or tall); a flick carries it further, a tap opens or closes it, and the arrow keys work too
 - Animated loading intro: ORBIT circles a globe with its letters facing outward, slows to a stop facing you, then a red pin drops in and takes the place of the I (pure CSS 3D; reduced-motion users see the finished logo straight away), count-up stats, and subtle motion that respects the "reduce motion" setting
-- Light and dark themes: follows the phone's setting until you tap the sun/moon button, then remembers your choice (the ORBIT intro stays dark in both)
+- Light and dark themes: follows the phone's setting until you tap the sun/moon button, then remembers your choice (the ORBIT intro stays dark in both). In light mode the globe is a pale painted map (soft blue seas, near-white land) made in the browser from a land/sea mask, so it sits on the white page instead of the dark photo of Earth
 - Mobile accessibility: every control is at least 44px, text meets WCAG 4.5:1 contrast, keyboard focus is always visible, and the draggable panel also has a tap button and arrow-key control as alternatives to dragging
 - No emoji anywhere: icons are inline SVG and flags are SVG images
 - No build step, plain static files: works as-is on GitHub Pages
